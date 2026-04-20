@@ -1,18 +1,39 @@
-/*
- * SPDX-FileCopyrightText: 2010-2022 Espressif Systems (Shanghai) CO LTD
- *
- * SPDX-License-Identifier: CC0-1.0
- */
+#include "esp_log.h"
+#include "interface.h"
+#include "protocol.h"
+#include "srv_wifi.h"
 
-#include <stdio.h>
-#include <inttypes.h>
-#include "sdkconfig.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "esp_chip_info.h"
-#include "esp_flash.h"
-#include "esp_system.h"
+
+static const char *TAG = "MAIN";
+
+// void app_main(void)
+// {
+//     ESP_LOGI(TAG, "Inicializando sistema...");
+
+//     app_interface_start_wifi();
+//     app_interface_init_gpio();
+// }
 
 void app_main(void)
 {
+    ESP_LOGI(TAG, "Teste HTTP iniciando...");
+
+    app_interface_start_wifi();
+
+    while (srv_wifi_get_status() != SRV_WIFI_CONNECTED) 
+    {
+        vTaskDelay(pdMS_TO_TICKS(500));
+        ESP_LOGI(TAG, "Aguardando Wi-Fi...");
+    }
+
+    ESP_LOGI(TAG, "Wi-Fi conectado, enviando POST...");
+
+    protocol_t proto;
+    protocol_init(&proto);
+
+    protocol_send_gpio(&proto, 1, 1);
+
+    ESP_LOGI(TAG, "POST enviado!");
 }
