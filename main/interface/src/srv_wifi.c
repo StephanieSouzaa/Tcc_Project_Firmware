@@ -13,15 +13,16 @@ static const char *TAG = "SRV_WIFI";
 static srv_wifi_status_t wifi_status = SRV_WIFI_DISCONNECTED;
 static void initialize_sntp_and_wait();
 
-static void wifi_event_handler(void* arg, esp_event_base_t event_base,
-                               int32_t event_id, void* event_data)
+static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data)
 {
-    if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
+    if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START)
+    {
         esp_wifi_connect();
         wifi_status = SRV_WIFI_CONNECTING;
         ESP_LOGI(TAG, "Conectando ao Wi-Fi...");
     } 
-    else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
+    else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) 
+    {
         wifi_status = SRV_WIFI_DISCONNECTED;
         ESP_LOGW(TAG, "Wi-Fi desconectado, tentando reconectar...");
         esp_wifi_connect();
@@ -30,43 +31,58 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base,
     {
     
         ESP_LOGI(TAG, "Obtido IP, iniciando sincronizacao de horario (SNTP)...");
-        initialize_sntp_and_wait();
         wifi_status = SRV_WIFI_CONNECTED;
         ESP_LOGI(TAG, "Wi-Fi conectado com sucesso!");
     }
 }
 
+void srv_initialize_sntp()
+{
+    initialize_sntp_and_wait();
+}
+
 static void initialize_sntp_and_wait(void)
 {
-    ESP_LOGI(TAG, "Inicializando SNTP e configurando timezone (America/Sao_Paulo)");
+    ESP_LOGI(TAG, "Inicializando SNTP...");
+
     setenv("TZ", "America/Sao_Paulo", 1);
     tzset();
 
     sntp_setoperatingmode(SNTP_OPMODE_POLL);
+
+    // 🔥 vários servidores (isso muda tudo)
     sntp_setservername(0, "pool.ntp.org");
+    sntp_setservername(1, "time.google.com");
+    sntp_setservername(2, "a.st1.ntp.br");
+
     sntp_init();
 
     int retry = 0;
-    const int retry_count = 15;
-    while (sntp_get_sync_status() == SNTP_SYNC_STATUS_RESET && retry < retry_count) {
-        ESP_LOGI(TAG, "Aguardando sincronizacao SNTP... (%d/%d)", retry+1, retry_count);
+    const int retry_count = 30; // 🔥 aumentei
+
+    while (sntp_get_sync_status() == SNTP_SYNC_STATUS_RESET && retry < retry_count)
+    {
+        ESP_LOGI(TAG, "Aguardando SNTP... (%d/%d)", retry + 1, retry_count);
         vTaskDelay(pdMS_TO_TICKS(2000));
         retry++;
     }
 
-    if (sntp_get_sync_status() == SNTP_SYNC_STATUS_RESET) 
+    time_t now = 0;
+    time(&now);
+
+    if (now < 1577836800) // 🔥 valida tempo real (2020+)
     {
-        ESP_LOGW(TAG, "SNTP não sincronizado após timeout");
-    } 
+        ESP_LOGW(TAG, "SNTP falhou! Tempo inválido");
+    }
     else
     {
-        time_t now = 0;
-        struct tm timeinfo = { 0 };
-        time(&now);
+        struct tm timeinfo;
         localtime_r(&now, &timeinfo);
+
         char strftime_buf[64];
         strftime(strftime_buf, sizeof(strftime_buf), "%Y-%m-%d %H:%M:%S", &timeinfo);
-        ESP_LOGI(TAG, "SNTP sincronizado, hora atual: %s", strftime_buf);
+
+        ESP_LOGI(TAG, "SNTP OK! Hora: %s", strftime_buf);
     }
 }
 
