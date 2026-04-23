@@ -12,5 +12,6 @@ typedef enum {
 esp_err_t srv_wifi_init(void);
 esp_err_t srv_wifi_connect(const char *ssid, const char *password);
 srv_wifi_status_t srv_wifi_get_status(void);
+void srv_initialize_sntp();
 
 #endif
