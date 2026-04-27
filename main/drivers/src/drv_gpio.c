@@ -21,8 +21,9 @@ static void gpio_task(void* arg)
 {
     int io_num;
 
-    for (;;) {
-        if (xQueueReceive(gpio_evt_queue, &io_num, portMAX_DELAY)) {
+    for (;;){
+        if (xQueueReceive(gpio_evt_queue, &io_num, portMAX_DELAY)) 
+        {
             int level = gpio_get_level(io_num);
 
             ESP_LOGI(TAG, "GPIO %d mudou para %d", io_num, level);

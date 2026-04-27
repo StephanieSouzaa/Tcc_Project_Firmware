@@ -3,6 +3,6 @@
 
 #include "protocol.h"
 
-void mqtt_client_start_impl(protocol_t *proto);
+void app_interface_start_mqtt(protocol_t *proto);
 
-#endif // MQTT_H
+#endif

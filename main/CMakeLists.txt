@@ -5,6 +5,7 @@ idf_component_register(
         "interface/src/srv_wifi.c"
         "Protocols/src/protocol.c"
         "Protocols/src/mqtt.c"
+        "Protocols/src/http.c"
         "drivers/src/drv_gpio.c"
 
     INCLUDE_DIRS 
@@ -21,4 +22,5 @@ idf_component_register(
         esp-mqtt
         esp_http_client
         driver
+        esp_system
 )

@@ -1,14 +1,16 @@
-#include "mqtt.h"
 #include "esp_log.h"
-#include "esp_err.h"
 #include "mqtt_client.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "esp_crt_bundle.h"
+#include "esp_system.h"
+#include "esp_random.h"   
+
+#include "mqtt.h"
+#include "protocol.h"
 
 static const char *TAG = "MQTT_CLIENT";
-
 
 #define MQTT_HOST     "92ca7f6444f944cbae30908602073cd5.s1.eu.hivemq.cloud"
 #define MQTT_PORT     8883
@@ -19,115 +21,68 @@ static const char *TAG = "MQTT_CLIENT";
 
 static esp_mqtt_client_handle_t mqtt_client = NULL;
 
-#define MAX_GPIO_TRACK 32
-static int last_states[MAX_GPIO_TRACK];
+static void mqtt_event_handler_cb(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data);
 
-static void handle_incoming_message(const char *topic, int topic_len, const char *data, int data_len)
-{
-    char topic_buf[128];
-    char payload[64];
+// void app_interface_start_mqtt(protocol_t *proto)
+// {
+//     ESP_LOGI(TAG, "%s", __func__);
+//     char uri[256];
+//     snprintf(uri, sizeof(uri), "mqtts://%s:%d", MQTT_HOST, MQTT_PORT);
 
-    int tlen = (topic_len < (int)sizeof(topic_buf)-1) ? topic_len : (int)sizeof(topic_buf)-1;
-    memcpy(topic_buf, topic, tlen);
-    topic_buf[tlen] = '\0';
+//     char client_id[64];
+//     snprintf(client_id, sizeof(client_id), "%s_client", proto->device_id);
 
-    int plen = (data_len < (int)sizeof(payload)-1) ? data_len : (int)sizeof(payload)-1;
-    memcpy(payload, data, plen);
-    payload[plen] = '\0';
+//     esp_mqtt_client_config_t cfg = {
+//         .broker.address.uri = uri,
 
-    char *p = strstr(topic_buf, "/gpio/");
-    if (!p) {
-        ESP_LOGW(TAG, "Topic sem /gpio/: %s", topic_buf);
-        return;
-    }
+//         .credentials.client_id = client_id,
+//         .credentials.username = MQTT_USER,
+//         .credentials.authentication.password = MQTT_PASS,
 
-    int gpio = atoi(p + 6);
-    if (gpio < 0 || gpio >= MAX_GPIO_TRACK) {
-        ESP_LOGW(TAG, "GPIO inválido: %d", gpio);
-        return;
-    }
+//         .broker.verification.crt_bundle_attach = esp_crt_bundle_attach,
+//     };
 
-    int new_state = atoi(payload);
-    int old_state = last_states[gpio];
+//     mqtt_client = esp_mqtt_client_init(&cfg);
 
-    last_states[gpio] = new_state;
+//     esp_mqtt_client_register_event(
+//         mqtt_client,
+//         ESP_EVENT_ANY_ID,
+//         mqtt_event_handler_cb,
+//         proto
+//     );
 
-    if (old_state == 0 && new_state == 1)
-    {
-        ESP_LOGI(TAG, "TRIGGER GPIO %d (0 -> 1)", gpio);
-    } 
-    else 
-    {
-        ESP_LOGI(TAG, "MQTT msg: %s = %s (prev=%d)", topic_buf, payload, old_state);
-    }
-}
+//     esp_mqtt_client_start(mqtt_client);
 
-
-static void mqtt_event_handler_cb(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data)
-{
-    esp_mqtt_event_handle_t event = event_data;
-    protocol_t *proto = (protocol_t *) handler_args;
-
-    switch (event_id) {
-
-        case MQTT_EVENT_CONNECTED: {
-            ESP_LOGI(TAG, "MQTT conectado");
-
-            char sub_topic[128];
-            const char *device_id = (proto && proto->device_id[0]) ? proto->device_id : "";
-
-            snprintf(sub_topic, sizeof(sub_topic), TOPIC_PREFIX "%s/gpio/+/set", device_id);
-
-            int msg_id = esp_mqtt_client_subscribe(mqtt_client, sub_topic, MQTT_QOS);
-            ESP_LOGI(TAG, "Inscrito em: %s (msg_id=%d)", sub_topic, msg_id);
-            break;
-        }
-
-        case MQTT_EVENT_DISCONNECTED:
-            ESP_LOGW(TAG, "MQTT desconectado");
-            break;
-
-        case MQTT_EVENT_DATA:
-            ESP_LOGI(TAG, "TOPIC=%.*s DATA=%.*s",
-                     event->topic_len, event->topic,
-                     event->data_len, event->data);
-
-            handle_incoming_message(event->topic, event->topic_len,
-                                    event->data, event->data_len);
-            break;
-
-        default:
-            break;
-    }
-}
-
+//     ESP_LOGI(TAG, "MQTT iniciado");
+// }
 
 void app_interface_start_mqtt(protocol_t *proto)
 {
-    if (!proto) {
-        ESP_LOGE(TAG, "Protocol NULL");
+    if (!proto || strlen(proto->device_id) == 0) {
+        ESP_LOGE(TAG, "device_id inválido!");
         return;
     }
 
-    for (int i = 0; i < MAX_GPIO_TRACK; i++) {
-        last_states[i] = -1;
-    }
-
-    char uri[256];
+    char uri[128];
     snprintf(uri, sizeof(uri), "mqtts://%s:%d", MQTT_HOST, MQTT_PORT);
 
     char client_id[64];
-    snprintf(client_id, sizeof(client_id), "%s_client", proto->device_id);
+    snprintf(client_id, sizeof(client_id), "%s", proto->device_id);
 
-esp_mqtt_client_config_t cfg = {
-    .broker.address.uri = uri,
+    esp_mqtt_client_config_t cfg = {
+        .broker.address.uri = uri,
 
-    .credentials.client_id = client_id,
-    .credentials.username = MQTT_USER,
-    .credentials.authentication.password = MQTT_PASS,
+        .credentials.client_id = client_id,
+        .credentials.username = MQTT_USER,
+        .credentials.authentication.password = MQTT_PASS,
 
-    .broker.verification.crt_bundle_attach = esp_crt_bundle_attach,
-};
+        .session.keepalive = 30,
+
+        .network.timeout_ms = 10000,
+        .network.reconnect_timeout_ms = 5000,
+
+        .broker.verification.crt_bundle_attach = esp_crt_bundle_attach,
+    };
 
     mqtt_client = esp_mqtt_client_init(&cfg);
 
@@ -150,5 +105,78 @@ esp_mqtt_client_config_t cfg = {
         return;
     }
 
-    ESP_LOGI(TAG, "MQTT iniciado com sucesso!");
+    ESP_LOGI(TAG, "MQTT iniciado!");
+}
+
+static void handle_incoming_message(protocol_t *proto, const char *topic, int topic_len, const char *data, int data_len)
+{
+    ESP_LOGI(TAG, "%s", __func__);
+    ESP_LOGI(TAG, "Mensagem recebida: topic=%.*s, data=%.*s", topic_len, topic, data_len, data);
+
+    char topic_buf[128];
+    char payload[64];
+
+    snprintf(topic_buf, topic_len + 1, "%s", topic);
+    snprintf(payload, data_len + 1, "%s", data);
+
+    char *p = strstr(topic_buf, "/gpio/");
+    
+    if (!p) return;
+
+    int gpio = atoi(p + 6);
+    int state = atoi(payload);
+
+    protocol_handle_gpio_command(proto, gpio, state);
+}
+
+static void mqtt_event_handler_cb(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data)
+{
+    esp_mqtt_event_handle_t event = event_data;
+    protocol_t *proto = (protocol_t *) handler_args;
+
+    switch (event_id) {
+
+        case MQTT_EVENT_CONNECTED: {
+            ESP_LOGI(TAG, "MQTT conectado");
+
+            if (!proto || strlen(proto->device_id) == 0) {
+                ESP_LOGE(TAG, "device_id inválido no subscribe!");
+                return;
+            }
+
+            char sub_topic[128];
+            snprintf(sub_topic, sizeof(sub_topic),TOPIC_PREFIX "%s/gpio/1/set",proto->device_id);
+
+            int msg_id = esp_mqtt_client_subscribe(mqtt_client, sub_topic, MQTT_QOS);
+
+            ESP_LOGI(TAG, "Inscrito em: %s (msg_id=%d)", sub_topic, msg_id);
+            break;
+        }
+
+        case MQTT_EVENT_DISCONNECTED:
+            ESP_LOGW(TAG, "MQTT desconectado");
+            break;
+
+        case MQTT_EVENT_DATA: {
+            char topic[128] = {0};
+            char data[64] = {0};
+
+            memcpy(topic, event->topic, event->topic_len);
+            memcpy(data, event->data, event->data_len);
+
+            ESP_LOGI(TAG, "TOPIC=%s DATA=%s", topic, data);
+
+            char *p = strstr(topic, "/gpio/");
+            if (!p) return;
+
+            int gpio = atoi(p + 6);
+            int state = atoi(data);
+
+            protocol_handle_gpio_command(proto, gpio, state);
+            break;
+        }
+
+        default:
+            break;
+    }
 }
