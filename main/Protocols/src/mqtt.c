@@ -23,39 +23,6 @@ static esp_mqtt_client_handle_t mqtt_client = NULL;
 
 static void mqtt_event_handler_cb(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data);
 
-// void app_interface_start_mqtt(protocol_t *proto)
-// {
-//     ESP_LOGI(TAG, "%s", __func__);
-//     char uri[256];
-//     snprintf(uri, sizeof(uri), "mqtts://%s:%d", MQTT_HOST, MQTT_PORT);
-
-//     char client_id[64];
-//     snprintf(client_id, sizeof(client_id), "%s_client", proto->device_id);
-
-//     esp_mqtt_client_config_t cfg = {
-//         .broker.address.uri = uri,
-
-//         .credentials.client_id = client_id,
-//         .credentials.username = MQTT_USER,
-//         .credentials.authentication.password = MQTT_PASS,
-
-//         .broker.verification.crt_bundle_attach = esp_crt_bundle_attach,
-//     };
-
-//     mqtt_client = esp_mqtt_client_init(&cfg);
-
-//     esp_mqtt_client_register_event(
-//         mqtt_client,
-//         ESP_EVENT_ANY_ID,
-//         mqtt_event_handler_cb,
-//         proto
-//     );
-
-//     esp_mqtt_client_start(mqtt_client);
-
-//     ESP_LOGI(TAG, "MQTT iniciado");
-// }
-
 void app_interface_start_mqtt(protocol_t *proto)
 {
     if (!proto || strlen(proto->device_id) == 0) {
@@ -145,7 +112,7 @@ static void mqtt_event_handler_cb(void *handler_args, esp_event_base_t base, int
             }
 
             char sub_topic[128];
-            snprintf(sub_topic, sizeof(sub_topic),TOPIC_PREFIX "%s/gpio/1/set",proto->device_id);
+            snprintf(sub_topic, sizeof(sub_topic),TOPIC_PREFIX "%s/gpio/+/set",proto->device_id);
 
             int msg_id = esp_mqtt_client_subscribe(mqtt_client, sub_topic, MQTT_QOS);
 

@@ -30,6 +30,6 @@ void protocol_handle_gpio_command(protocol_t *proto, int gpio, int state)
 {
     ESP_LOGI(TAG, "Executando comando: GPIO %d -> %d", gpio, state);
 
-   // drv_gpio_set(gpio, state); criar a função que liga uma gpio
+    drv_gpio_set(gpio, state);
     protocol_send_gpio(proto, gpio, state);
 }

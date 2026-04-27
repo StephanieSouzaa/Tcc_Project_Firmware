@@ -39,7 +39,6 @@ void app_main(void)
     srv_initialize_sntp(); 
 
     protocol_start(&proto);
-    //app_interface_start_mqtt(&proto);
 
     ESP_LOGI(TAG, "Iniciando GPIO...");
     drv_gpio_init(&proto);
