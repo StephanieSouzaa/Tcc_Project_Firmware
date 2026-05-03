@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "esp_crt_bundle.h"
+#include "cJSON.h"
+#include "drv_gpio.h"
 #include "esp_system.h"
 #include "esp_random.h"   
 
@@ -75,7 +77,7 @@ void app_interface_start_mqtt(protocol_t *proto)
     ESP_LOGI(TAG, "MQTT iniciado!");
 }
 
-static void handle_incoming_message(protocol_t *proto, const char *topic, int topic_len, const char *data, int data_len)
+static void handle_incoming_message(protocol_t *proto, char *topic, int topic_len, const char *data, int data_len)
 {
     ESP_LOGI(TAG, "%s", __func__);
     ESP_LOGI(TAG, "Mensagem recebida: topic=%.*s, data=%.*s", topic_len, topic, data_len, data);
@@ -106,17 +108,19 @@ static void mqtt_event_handler_cb(void *handler_args, esp_event_base_t base, int
         case MQTT_EVENT_CONNECTED: {
             ESP_LOGI(TAG, "MQTT conectado");
 
-            if (!proto || strlen(proto->device_id) == 0) {
-                ESP_LOGE(TAG, "device_id inválido no subscribe!");
-                return;
-            }
-
             char sub_topic[128];
-            snprintf(sub_topic, sizeof(sub_topic),TOPIC_PREFIX "%s/gpio/+/set",proto->device_id);
+            const char *device_id = (proto && proto->device_id[0]) ? proto->device_id : "";
 
+            // subscribe to gpio set
+            snprintf(sub_topic, sizeof(sub_topic), TOPIC_PREFIX "%s/gpio/+/set", device_id);
             int msg_id = esp_mqtt_client_subscribe(mqtt_client, sub_topic, MQTT_QOS);
-
             ESP_LOGI(TAG, "Inscrito em: %s (msg_id=%d)", sub_topic, msg_id);
+
+            // subscribe to config topic
+            char config_topic[128];
+            snprintf(config_topic, sizeof(config_topic), TOPIC_PREFIX "%s/config", device_id);
+            int cfg_id = esp_mqtt_client_subscribe(mqtt_client, config_topic, MQTT_QOS);
+            ESP_LOGI(TAG, "Inscrito em: %s (msg_id=%d)", config_topic, cfg_id);
             break;
         }
 
@@ -124,24 +128,76 @@ static void mqtt_event_handler_cb(void *handler_args, esp_event_base_t base, int
             ESP_LOGW(TAG, "MQTT desconectado");
             break;
 
-        case MQTT_EVENT_DATA: {
-            char topic[128] = {0};
-            char data[64] = {0};
+        case MQTT_EVENT_DATA:
+            ESP_LOGI(TAG, "TOPIC=%.*s DATA=%.*s",
+                     event->topic_len, event->topic,
+                     event->data_len, event->data);
 
-            memcpy(topic, event->topic, event->topic_len);
-            memcpy(data, event->data, event->data_len);
+            // if this is a /config topic, parse JSON and reconfigure GPIO
+            {
+                // construct topic string
+                char topic_buf[128];
+                int tlen = (event->topic_len < (int)sizeof(topic_buf)-1) ? event->topic_len : (int)sizeof(topic_buf)-1;
+                memcpy(topic_buf, event->topic, tlen);
+                topic_buf[tlen] = '\0';
 
-            ESP_LOGI(TAG, "TOPIC=%s DATA=%s", topic, data);
+                // check if topic ends with "/config"
+                const char *suffix = "/config";
+                size_t slen = strlen(suffix);
+                if (tlen >= (int)slen && strcmp(topic_buf + tlen - slen, suffix) == 0) {
+                    // parse JSON payload
+                    char payload_buf[512];
+                    int plen = (event->data_len < (int)sizeof(payload_buf)-1) ? event->data_len : (int)sizeof(payload_buf)-1;
+                    memcpy(payload_buf, event->data, plen);
+                    payload_buf[plen] = '\0';
 
-            char *p = strstr(topic, "/gpio/");
-            if (!p) return;
+                    cJSON *root = cJSON_Parse(payload_buf);
+                    if (root) {
+                        cJSON *inputs = cJSON_GetObjectItemCaseSensitive(root, "inputs");
+                        cJSON *outputs = cJSON_GetObjectItemCaseSensitive(root, "outputs");
 
-            int gpio = atoi(p + 6);
-            int state = atoi(data);
+                        int *ins = NULL; size_t ins_n = 0;
+                        int *outs = NULL; size_t outs_n = 0;
 
-            protocol_handle_gpio_command(proto, gpio, state);
+                        if (cJSON_IsArray(inputs)) {
+                            ins_n = cJSON_GetArraySize(inputs);
+                            if (ins_n) {
+                                ins = malloc(sizeof(int) * ins_n);
+                                for (size_t i = 0; i < ins_n; ++i) {
+                                    cJSON *it = cJSON_GetArrayItem(inputs, i);
+                                    ins[i] = cJSON_IsNumber(it) ? it->valueint : -1;
+                                }
+                            }
+                        }
+
+                        if (cJSON_IsArray(outputs)) {
+                            outs_n = cJSON_GetArraySize(outputs);
+                            if (outs_n) {
+                                outs = malloc(sizeof(int) * outs_n);
+                                for (size_t i = 0; i < outs_n; ++i) {
+                                    cJSON *it = cJSON_GetArrayItem(outputs, i);
+                                    outs[i] = cJSON_IsNumber(it) ? it->valueint : -1;
+                                }
+                            }
+                        }
+
+                        ESP_LOGI(TAG, "Applying GPIO config: inputs=%d outputs=%d", (int)ins_n, (int)outs_n);
+                        drv_gpio_configure(ins, ins_n, outs, outs_n);
+
+                        free(ins); free(outs);
+                        cJSON_Delete(root);
+                    } else {
+                        ESP_LOGW(TAG, "Invalid JSON in config payload");
+                    }
+
+                } else {
+                    // handle normal gpio set messages
+                    handle_incoming_message(proto, event->topic, event->topic_len, event->data, event->data_len);
+                }
+            }
+
             break;
-        }
+        
 
         default:
             break;

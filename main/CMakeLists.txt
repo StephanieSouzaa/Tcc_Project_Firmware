@@ -15,6 +15,7 @@ idf_component_register(
         "drivers/inc"
 
     REQUIRES 
+        cjson
         esp_netif
         esp_wifi
         esp_event
