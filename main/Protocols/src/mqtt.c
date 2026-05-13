@@ -77,6 +77,19 @@ void app_interface_start_mqtt(protocol_t *proto)
     ESP_LOGI(TAG, "MQTT iniciado!");
 }
 
+void mqtt_stop(void)
+{
+    if (mqtt_client != NULL)
+    {
+        ESP_LOGW(TAG, "Parando MQTT...");
+
+        esp_mqtt_client_stop(mqtt_client);
+        esp_mqtt_client_destroy(mqtt_client);
+
+        mqtt_client = NULL;
+    }
+}
+
 static void handle_incoming_message(protocol_t *proto, char *topic, int topic_len, const char *data, int data_len)
 {
     ESP_LOGI(TAG, "%s", __func__);

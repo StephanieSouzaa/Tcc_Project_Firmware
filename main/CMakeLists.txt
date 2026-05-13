@@ -20,8 +20,9 @@ idf_component_register(
         esp_wifi
         esp_event
         nvs_flash
-        esp-mqtt
+        mqtt
         esp_http_client
+        esp_http_server
         driver
         esp_system
 )
