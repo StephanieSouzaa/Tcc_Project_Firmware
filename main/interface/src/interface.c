@@ -21,7 +21,8 @@ static void wifi_button_task(void *arg)
     int64_t press_start = 0;
     bool pressed = false;
 
-    while (true) {
+    while (true) 
+    {
         int level = gpio_get_level(WIFI_BUTTON_GPIO);
 
         if (level == 1) 

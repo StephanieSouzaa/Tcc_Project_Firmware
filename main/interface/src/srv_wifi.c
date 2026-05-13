@@ -25,18 +25,13 @@ static httpd_handle_t server = NULL;
 static srv_wifi_status_t wifi_status = SRV_WIFI_DISCONNECTED;
 static void initialize_sntp_and_wait();
 static bool config_mode_active = false;
-
-// 🔥 buffer global (ESSENCIAL)
 static wifi_ap_record_t ap_list[20];
 static uint16_t ap_count = 0;
 
 esp_err_t srv_wifi_save_credentials(const char *ssid, const char *password);
 
-// ================= EVENT =================
-static void wifi_event_handler(void *arg,
-                               esp_event_base_t event_base,
-                               int32_t event_id,
-                               void *event_data)
+
+static void wifi_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
 {
     if (event_base == WIFI_EVENT &&
         event_id == WIFI_EVENT_STA_START)
@@ -49,17 +44,14 @@ static void wifi_event_handler(void *arg,
         }
     }
 
-    else if (event_base == WIFI_EVENT &&
-             event_id == WIFI_EVENT_STA_DISCONNECTED)
+    else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED)
     {
         wifi_status = SRV_WIFI_DISCONNECTED;
 
         wifi_mode_t mode;
         esp_wifi_get_mode(&mode);
 
-        if (!config_mode_active &&
-            (mode == WIFI_MODE_STA ||
-             mode == WIFI_MODE_APSTA))
+        if (!config_mode_active && (mode == WIFI_MODE_STA || mode == WIFI_MODE_APSTA))
         {
             ESP_LOGI(TAG, "Tentando reconectar...");
             esp_wifi_connect();
@@ -70,8 +62,7 @@ static void wifi_event_handler(void *arg,
         }
     }
 
-    else if (event_base == IP_EVENT &&
-             event_id == IP_EVENT_STA_GOT_IP)
+    else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP)
     {
         wifi_status = SRV_WIFI_CONNECTED;
 
@@ -113,7 +104,7 @@ static void initialize_sntp_and_wait(void)
     time_t now = 0;
     time(&now);
 
-    if (now < 1577836800) // 🔥 valida tempo real (2020+)
+    if (now < 1577836800)
     {
         ESP_LOGW(TAG, "SNTP falhou! Tempo inválido");
     }
@@ -155,7 +146,6 @@ esp_err_t srv_wifi_init(void)
     return ESP_OK;
 }
 
-// ================= AP =================
 esp_err_t srv_wifi_start_ap(void)
 {
     config_mode_active = true;
@@ -183,7 +173,6 @@ esp_err_t srv_wifi_start_ap(void)
     return ESP_OK;
 }
 
-// ================= SCAN (FORA DO HTTP!) =================
 void srv_wifi_scan_networks(void)
 {
    wifi_scan_config_t scan_config = {
@@ -195,11 +184,12 @@ void srv_wifi_scan_networks(void)
 
     ESP_LOGI(TAG, "Escaneando redes...");
 
-    // 🔥 bloqueante mas fora do HTTP (OK)
     esp_err_t err = esp_wifi_scan_start(&scan_config, true);
-if (err != ESP_OK) {
+
+    if(err != ESP_OK) 
+    {
     ESP_LOGE(TAG, "Erro ao iniciar scan: %s", esp_err_to_name(err));
-}
+    }
 
     ESP_ERROR_CHECK(esp_wifi_scan_get_ap_num(&ap_count));
     ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&ap_count, ap_list));
@@ -207,7 +197,6 @@ if (err != ESP_OK) {
     ESP_LOGI(TAG, "Encontradas %d redes", ap_count);
 }
 
-// ================= HTML =================
 static void wifi_list_to_html(char *buffer, size_t max_len)
 {
     strncat(buffer,
@@ -222,10 +211,9 @@ static void wifi_list_to_html(char *buffer, size_t max_len)
             max_len - strlen(buffer) - 1);
     }
 
-for (int i = 0; i < ap_count; i++)
-{
-    if (strlen((char*)ap_list[i].ssid) == 0)
-        continue;
+   for(int i = 0; i < ap_count; i++)
+   {
+    if (strlen((char*)ap_list[i].ssid) == 0) continue;
 
     strncat(buffer, "<option value='", max_len - strlen(buffer) - 1);
     strncat(buffer, (char*)ap_list[i].ssid, max_len - strlen(buffer) - 1);
@@ -272,18 +260,14 @@ static esp_err_t root_get(httpd_req_t *req)
     return ESP_OK;
 }
 
-// ================= SAVE =================
 static esp_err_t save_post(httpd_req_t *req)
 {
     char buf[256] = {0};
 
     int len = httpd_req_recv(req, buf, sizeof(buf) - 1);
 
-    if (len <= 0)
-    {
-        return ESP_FAIL;
-    }
-
+    if (len <= 0) return ESP_FAIL;
+    
     buf[len] = '\0';
 
     ESP_LOGI(TAG, "POST RECEBIDO: %s", buf);
@@ -297,7 +281,6 @@ static esp_err_t save_post(httpd_req_t *req)
     ESP_LOGI(TAG, "SSID: %s", ssid);
     ESP_LOGI(TAG, "PASS: %s", pass);
 
-    // salva na NVS
     srv_wifi_save_credentials(ssid, pass);
 
     httpd_resp_sendstr(req, "WiFi salvo! Reiniciando...");
@@ -309,7 +292,6 @@ static esp_err_t save_post(httpd_req_t *req)
     return ESP_OK;
 }
 
-// ================= SERVER =================
 esp_err_t srv_wifi_start_config_server(void)
 {
     if (server != NULL)
@@ -340,7 +322,6 @@ esp_err_t srv_wifi_start_config_server(void)
     return ESP_OK;
 }
 
-// ================= STATUS =================
 srv_wifi_status_t srv_wifi_get_status(void)
 {
     return wifi_status;
@@ -360,14 +341,11 @@ esp_err_t srv_wifi_save_credentials(const char *ssid, const char *password)
     return ESP_OK;
 }
 
-bool srv_wifi_load_credentials(char *ssid, size_t ssid_size,
-                               char *password, size_t pass_size)
+bool srv_wifi_load_credentials(char *ssid, size_t ssid_size, char *password, size_t pass_size)
 {
     nvs_handle_t nvs;
 
-    if (nvs_open(WIFI_NVS_NAMESPACE, NVS_READONLY, &nvs) != ESP_OK)
-        return false;
-
+    if (nvs_open(WIFI_NVS_NAMESPACE, NVS_READONLY, &nvs) != ESP_OK) return false;
     if (nvs_get_str(nvs, WIFI_SSID_KEY, ssid, &ssid_size) != ESP_OK) return false;
     if (nvs_get_str(nvs, WIFI_PASSWORD_KEY, password, &pass_size) != ESP_OK) return false;
 

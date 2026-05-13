@@ -1,0 +1,31 @@
+# Build directories
+build/
+.ninja_deps
+.ninja_log
+*.o
+*.obj
+*.a
+*.elf
+*.bin
+*.map
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Dependencies
+managed_components/
+dependencies.lock
+
+# SDK config build artifacts
+sdkconfig.old
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+
+# OS
+.DS_Store
+Thumbs.db

@@ -16,7 +16,6 @@ esp_err_t srv_wifi_connect(const char *ssid, const char *password);
 
 bool srv_wifi_load_credentials(char *ssid, size_t ssid_size, char *password, size_t password_size);
 bool srv_wifi_has_saved_credentials(void);
-
 esp_err_t srv_wifi_start_ap(void);
 esp_err_t srv_wifi_start_config_server(void);
 srv_wifi_status_t srv_wifi_get_status(void);
