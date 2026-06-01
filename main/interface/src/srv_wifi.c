@@ -370,6 +370,7 @@ esp_err_t srv_wifi_connect(const char *ssid, const char *password)
 
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
     ESP_ERROR_CHECK(esp_wifi_start());
+    esp_wifi_set_ps(WIFI_PS_NONE);
 
     ESP_LOGI("SRV_WIFI", "Conectando ao SSID: %s", ssid);
 
@@ -378,5 +379,6 @@ esp_err_t srv_wifi_connect(const char *ssid, const char *password)
 
 bool srv_wifi_is_config_mode(void)
 {
+    
     return config_mode_active;
 }

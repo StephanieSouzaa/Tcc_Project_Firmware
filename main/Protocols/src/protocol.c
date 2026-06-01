@@ -2,6 +2,7 @@
 #include "http.h"
 #include "mqtt.h"
 #include "drv_gpio.h"
+#include "sdcard.h"
 #include "esp_log.h"
 #include <string.h>
 

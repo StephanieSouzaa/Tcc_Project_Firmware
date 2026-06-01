@@ -4,6 +4,7 @@
 #include "srv_wifi.h"
 #include "mqtt.h"
 #include "drv_gpio.h"
+#include "sdcard.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -14,6 +15,10 @@ static protocol_t proto;
 void app_main(void)
 {
     ESP_LOGI(TAG, "Inicializando sistema...");
+    if (!sdcard_init()) {
+        ESP_LOGW(TAG, "SD card não disponível. Logs serão feitos apenas no console.");
+    }
+
     app_interface_start_wifi();
 
     app_interface_start_button();

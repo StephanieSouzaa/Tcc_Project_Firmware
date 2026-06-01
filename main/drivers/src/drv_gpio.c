@@ -3,6 +3,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 #include "esp_log.h"
+#include "sdcard.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
@@ -47,6 +48,7 @@ static void gpio_task(void* arg)
             int level = gpio_get_level(io_num);
 
             ESP_LOGI(TAG, "GPIO %d mudou para %d", io_num, level);
+            sdcard_log("GPIO %d mudou para %d", io_num, level);
 
             protocol_send_gpio(proto_ref, io_num, level);
         }
@@ -210,9 +212,11 @@ void drv_gpio_set(int gpio, int level)
         {
             gpio_set_level(gpio, level);
             ESP_LOGI(TAG, "GPIO %d setado para %d", gpio, level);
+            sdcard_log("GPIO %d setado para %d", gpio, level);
             return;
         }
     }
 
     ESP_LOGW(TAG, "GPIO %d não é saída válida!", gpio);
+    sdcard_log("Tentativa inválida de setar GPIO %d", gpio);
 }

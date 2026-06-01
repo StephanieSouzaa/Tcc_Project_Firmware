@@ -7,6 +7,7 @@ idf_component_register(
         "Protocols/src/mqtt.c"
         "Protocols/src/http.c"
         "drivers/src/drv_gpio.c"
+        "drivers/src/sdcard.c"
 
     INCLUDE_DIRS 
         "."
@@ -25,4 +26,6 @@ idf_component_register(
         esp_http_server
         driver
         esp_system
+        fatfs
+        sdmmc
 )
