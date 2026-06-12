@@ -50,7 +50,7 @@ static void gpio_task(void* arg)
             ESP_LOGI(TAG, "GPIO %d mudou para %d", io_num, level);
             sdcard_log("GPIO %d mudou para %d", io_num, level);
 
-            protocol_send_gpio(proto_ref, io_num, level);
+            protocol_send_gpio(proto_ref, io_num, level, NULL);
         }
     }
 }

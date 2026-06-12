@@ -22,15 +22,16 @@ void protocol_start(protocol_t *proto)
     app_interface_start_mqtt(proto);
 }
 
-void protocol_send_gpio(protocol_t *proto, int gpio, int state)
+void protocol_send_gpio(protocol_t *proto, int gpio, int state, const char *message_id)
 {
-    http_send_gpio(proto, gpio, state);
+    http_send_gpio(proto, gpio, state, message_id);
 }
 
-void protocol_handle_gpio_command(protocol_t *proto, int gpio, int state)
+void protocol_handle_gpio_command(protocol_t *proto, int gpio, int state, const char *message_id)
 {
-    ESP_LOGI(TAG, "Executando comando: GPIO %d -> %d", gpio, state);
+    ESP_LOGI(TAG, "Executando comando: GPIO %d -> %d (msg_id=%s)", gpio, state, message_id?message_id:"-");
+    sdcard_log("Executando comando: GPIO %d -> %d (msg_id=%s)", gpio, state, message_id?message_id:"-");
 
     drv_gpio_set(gpio, state);
-    protocol_send_gpio(proto, gpio, state);
+    protocol_send_gpio(proto, gpio, state, message_id);
 }

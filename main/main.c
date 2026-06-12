@@ -15,7 +15,9 @@ static protocol_t proto;
 void app_main(void)
 {
     ESP_LOGI(TAG, "Inicializando sistema...");
-    if (!sdcard_init()) {
+
+    if (!sdcard_init()) 
+    {
         ESP_LOGW(TAG, "SD card não disponível. Logs serão feitos apenas no console.");
     }
 
@@ -50,4 +52,6 @@ void app_main(void)
     drv_gpio_init(&proto);
 
     ESP_LOGI(TAG, "Sistema iniciado!");
+    
+    sdcard_log("Sistema iniciado!");
 }

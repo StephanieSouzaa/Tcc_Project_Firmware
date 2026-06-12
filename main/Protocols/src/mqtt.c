@@ -96,19 +96,53 @@ static void handle_incoming_message(protocol_t *proto, char *topic, int topic_le
     ESP_LOGI(TAG, "Mensagem recebida: topic=%.*s, data=%.*s", topic_len, topic, data_len, data);
 
     char topic_buf[128];
-    char payload[64];
+    char payload[512];
 
-    snprintf(topic_buf, topic_len + 1, "%s", topic);
-    snprintf(payload, data_len + 1, "%s", data);
+    int tlen = (topic_len < sizeof(topic_buf) - 1) ? topic_len : sizeof(topic_buf) - 1;
+
+    memcpy(topic_buf, topic, tlen);
+    topic_buf[tlen] = '\0';
+
+    int plen = (data_len < sizeof(payload) - 1) ? data_len : sizeof(payload) - 1;
+
+    memcpy(payload, data, plen);
+    payload[plen] = '\0';
 
     char *p = strstr(topic_buf, "/gpio/");
     
-    if (!p) return;
+    if (!p)
+    {
+        ESP_LOGW(TAG, "Topico nao contem /gpio/");
+        return;
+    }
 
     int gpio = atoi(p + 6);
-    int state = atoi(payload);
 
-    protocol_handle_gpio_command(proto, gpio, state);
+    cJSON *root = cJSON_Parse(payload);
+
+    if (!root)
+    {
+        ESP_LOGW(TAG, "JSON invalido");
+        return;
+    }
+
+    cJSON *cmd = cJSON_GetObjectItem(root, "command");
+    cJSON *msg_id = cJSON_GetObjectItem(root, "message_id");
+
+    if (!cJSON_IsString(cmd) || !cJSON_IsString(msg_id))
+    {
+        ESP_LOGW(TAG, "Payload invalido");
+        cJSON_Delete(root);
+        return;
+    }
+
+    int state = atoi(cmd->valuestring);
+
+    ESP_LOGI(TAG, "Executando comando: GPIO %d -> %d (msg_id=%s)", gpio, state, msg_id->valuestring);
+
+    protocol_handle_gpio_command(proto, gpio, state, msg_id->valuestring);
+
+    cJSON_Delete(root);
 }
 
 static void mqtt_event_handler_cb(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data)

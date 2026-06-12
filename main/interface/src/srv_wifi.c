@@ -379,6 +379,5 @@ esp_err_t srv_wifi_connect(const char *ssid, const char *password)
 
 bool srv_wifi_is_config_mode(void)
 {
-    
     return config_mode_active;
 }

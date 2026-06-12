@@ -4,6 +4,6 @@
 
 #include "protocol.h"
 
-void http_send_gpio(protocol_t *proto, int gpio, int state);
+void http_send_gpio(protocol_t *proto, int gpio, int state, const char *message_id);
 
 #endif

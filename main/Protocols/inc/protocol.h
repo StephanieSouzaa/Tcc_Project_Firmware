@@ -7,7 +7,7 @@ typedef struct {
 
 void protocol_init(protocol_t *proto);
 void protocol_start(protocol_t *proto);
-void protocol_send_gpio(protocol_t *proto, int gpio, int state);
-void protocol_handle_gpio_command(protocol_t *proto, int gpio, int state);
+void protocol_send_gpio(protocol_t *proto, int gpio, int state, const char *message_id);
+void protocol_handle_gpio_command(protocol_t *proto, int gpio, int state, const char *message_id);
 
 #endif

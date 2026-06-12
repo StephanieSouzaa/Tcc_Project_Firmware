@@ -10,7 +10,7 @@ static const char *TAG = "HTTP";
 
 #define API_BASE_URL "http://br76.teste.website/~steph999/api/populate.php"
 
-void http_send_gpio(protocol_t *proto, int gpio, int state)
+void http_send_gpio(protocol_t *proto, int gpio, int state, const char *message_id)
 {
     char timestamp[32];
 
@@ -22,13 +22,14 @@ void http_send_gpio(protocol_t *proto, int gpio, int state)
 
     strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", &timeinfo);
 
-    char post_data[256];
+    char post_data[320];
     snprintf(post_data, sizeof(post_data),
-             "timestamp=%s&device_id=%s&gpio_id=%d&state=%d",
+             "timestamp=%s&device_id=%s&gpio_id=%d&state=%d&message_id=%s",
              timestamp,
              proto->device_id,
              gpio,
-             state);
+             state,
+             message_id?message_id:"");
 
     esp_http_client_config_t config = {
         .url = API_BASE_URL,
