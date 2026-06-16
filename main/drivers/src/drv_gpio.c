@@ -202,7 +202,7 @@ void drv_gpio_init(protocol_t *proto)
     ESP_LOGI(TAG, "GPIO inicializado");
 }
 
-void drv_gpio_set(int gpio, int level)
+bool drv_gpio_set(int gpio, int level)
 {
     ESP_LOGI(TAG,"%s", __func__);
 
@@ -213,10 +213,11 @@ void drv_gpio_set(int gpio, int level)
             gpio_set_level(gpio, level);
             ESP_LOGI(TAG, "GPIO %d setado para %d", gpio, level);
             sdcard_log("GPIO %d setado para %d", gpio, level);
-            return;
+            return true;
         }
     }
 
     ESP_LOGW(TAG, "GPIO %d não é saída válida!", gpio);
     sdcard_log("Tentativa inválida de setar GPIO %d", gpio);
+    return false;
 }
