@@ -84,7 +84,6 @@ static void initialize_sntp_and_wait(void)
 
     sntp_setoperatingmode(SNTP_OPMODE_POLL);
 
-    // 🔥 vários servidores (isso muda tudo)
     sntp_setservername(0, "pool.ntp.org");
     sntp_setservername(1, "time.google.com");
     sntp_setservername(2, "a.st1.ntp.br");
@@ -92,7 +91,7 @@ static void initialize_sntp_and_wait(void)
     sntp_init();
 
     int retry = 0;
-    const int retry_count = 30; // 🔥 aumentei
+    const int retry_count = 30;
 
     while (sntp_get_sync_status() == SNTP_SYNC_STATUS_RESET && retry < retry_count)
     {
