@@ -27,7 +27,7 @@ static void wifi_button_task(void *arg)
 
         if (level == 1) 
         {
-            ESP_LOGI(TAG, "GPIO LEVEL: %d", level);
+            //ESP_LOGI(TAG, "GPIO LEVEL: %d", level);
             if (!pressed) 
             {
                 pressed = true;

@@ -47,7 +47,7 @@ static void gpio_task(void* arg)
         {
             int level = gpio_get_level(io_num);
 
-            ESP_LOGI(TAG, "GPIO %d mudou para %d", io_num, level);
+           // ESP_LOGI(TAG, "GPIO %d mudou para %d", io_num, level);
             sdcard_log("GPIO %d mudou para %d", io_num, level);
 
             protocol_send_gpio(proto_ref, io_num, level, NULL);
@@ -184,7 +184,7 @@ void drv_gpio_configure(const int *inputs, size_t n_inputs, const int *outputs, 
         }
     }
 
-    ESP_LOGI(TAG, "Configured inputs=%d outputs=%d", (int)input_count, (int)output_count);
+    //ESP_LOGI(TAG, "Configured inputs=%d outputs=%d", (int)input_count, (int)output_count);
 }
 
 void drv_gpio_init(protocol_t *proto)
@@ -202,21 +202,22 @@ void drv_gpio_init(protocol_t *proto)
     ESP_LOGI(TAG, "GPIO inicializado");
 }
 
-void drv_gpio_set(int gpio, int level)
+bool drv_gpio_set(int gpio, int level)
 {
-    ESP_LOGI(TAG,"%s", __func__);
+    //ESP_LOGI(TAG,"%s", __func__);
 
     for(size_t i = 0; i < output_count; i++)
     {
         if(output_pins[i] == gpio)
         {
             gpio_set_level(gpio, level);
-            ESP_LOGI(TAG, "GPIO %d setado para %d", gpio, level);
+           // ESP_LOGI(TAG, "GPIO %d setado para %d", gpio, level);
             sdcard_log("GPIO %d setado para %d", gpio, level);
-            return;
+            return true;
         }
     }
 
     ESP_LOGW(TAG, "GPIO %d não é saída válida!", gpio);
     sdcard_log("Tentativa inválida de setar GPIO %d", gpio);
+    return false;
 }

@@ -269,7 +269,7 @@ static esp_err_t save_post(httpd_req_t *req)
     
     buf[len] = '\0';
 
-    ESP_LOGI(TAG, "POST RECEBIDO: %s", buf);
+    //ESP_LOGI(TAG, "POST RECEBIDO: %s", buf);
 
     char ssid[64] = {0};
     char pass[64] = {0};
