@@ -74,7 +74,7 @@ static void http_worker_task(void *arg)
 
 void protocol_handle_gpio_command(protocol_t *proto, int gpio, int state, const char *message_id)
 {
-    ESP_LOGI(TAG, "Executando comando: GPIO %d -> %d (msg_id=%s)", gpio, state, message_id?message_id:"-");
+    //ESP_LOGI(TAG, "Executando comando: GPIO %d -> %d (msg_id=%s)", gpio, state, message_id?message_id:"-");
     sdcard_log("Executando comando: GPIO %d -> %d (msg_id=%s)", gpio, state, message_id?message_id:"-");
 
     if (drv_gpio_set(gpio, state)) 
@@ -93,8 +93,9 @@ void protocol_handle_gpio_command(protocol_t *proto, int gpio, int state, const 
             } 
             else 
             {
-                ESP_LOGW(TAG, "Fila HTTP cheia ou não criada, enviando diretamente");
-                if (args->message_id) {
+                //ESP_LOGW(TAG, "Fila HTTP cheia ou não criada, enviando diretamente");
+                if (args->message_id) 
+                {
                     http_send_gpio(proto, gpio, state, args->message_id);
                     free(args->message_id);
                 }
@@ -107,7 +108,7 @@ void protocol_handle_gpio_command(protocol_t *proto, int gpio, int state, const 
         } 
         else 
         {
-            ESP_LOGW(TAG, "Sem memória para task HTTP, enviando diretamente");
+            //ESP_LOGW(TAG, "Sem memória para task HTTP, enviando diretamente");
             protocol_send_gpio(proto, gpio, state, message_id);
         }
     }

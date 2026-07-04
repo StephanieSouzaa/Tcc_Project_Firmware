@@ -92,8 +92,8 @@ void mqtt_stop(void)
 
 static void handle_incoming_message(protocol_t *proto, char *topic, int topic_len, const char *data, int data_len)
 {
-    ESP_LOGI(TAG, "%s", __func__);
-    ESP_LOGI(TAG, "Mensagem recebida: topic=%.*s, data=%.*s", topic_len, topic, data_len, data);
+   // ESP_LOGI(TAG, "%s", __func__);
+    //ESP_LOGI(TAG, "Mensagem recebida: topic=%.*s, data=%.*s", topic_len, topic, data_len, data);
 
     char topic_buf[128];
     char payload[512];
@@ -138,7 +138,7 @@ static void handle_incoming_message(protocol_t *proto, char *topic, int topic_le
 
     int state = atoi(cmd->valuestring);
 
-    ESP_LOGI(TAG, "Executando comando: GPIO %d -> %d (msg_id=%s)", gpio, state, msg_id->valuestring);
+   // ESP_LOGI(TAG, "Executando comando: GPIO %d -> %d (msg_id=%s)", gpio, state, msg_id->valuestring);
 
     protocol_handle_gpio_command(proto, gpio, state, msg_id->valuestring);
 
@@ -152,54 +152,52 @@ static void mqtt_event_handler_cb(void *handler_args, esp_event_base_t base, int
 
     switch (event_id) {
 
-        case MQTT_EVENT_CONNECTED: {
-            ESP_LOGI(TAG, "MQTT conectado");
+        case MQTT_EVENT_CONNECTED: 
+        {
+          //  ESP_LOGI(TAG, "MQTT conectado");
 
             char sub_topic[128];
             const char *device_id = (proto && proto->device_id[0]) ? proto->device_id : "";
 
-            // subscribe to gpio set
             snprintf(sub_topic, sizeof(sub_topic), TOPIC_PREFIX "%s/gpio/+/set", device_id);
             int msg_id = esp_mqtt_client_subscribe(mqtt_client, sub_topic, MQTT_QOS);
-            ESP_LOGI(TAG, "Inscrito em: %s (msg_id=%d)", sub_topic, msg_id);
+           // ESP_LOGI(TAG, "Inscrito em: %s (msg_id=%d)", sub_topic, msg_id);
 
             // subscribe to config topic
             char config_topic[128];
             snprintf(config_topic, sizeof(config_topic), TOPIC_PREFIX "%s/config", device_id);
             int cfg_id = esp_mqtt_client_subscribe(mqtt_client, config_topic, MQTT_QOS);
-            ESP_LOGI(TAG, "Inscrito em: %s (msg_id=%d)", config_topic, cfg_id);
+          //  ESP_LOGI(TAG, "Inscrito em: %s (msg_id=%d)", config_topic, cfg_id);
             break;
         }
 
         case MQTT_EVENT_DISCONNECTED:
-            ESP_LOGW(TAG, "MQTT desconectado");
+            //ESP_LOGW(TAG, "MQTT desconectado");
             break;
 
         case MQTT_EVENT_DATA:
-            ESP_LOGI(TAG, "TOPIC=%.*s DATA=%.*s",
-                     event->topic_len, event->topic,
-                     event->data_len, event->data);
+            //ESP_LOGI(TAG, "TOPIC=%.*s DATA=%.*s", event->topic_len, event->topic, event->data_len, event->data);
 
-            // if this is a /config topic, parse JSON and reconfigure GPIO
             {
-                // construct topic string
                 char topic_buf[128];
                 int tlen = (event->topic_len < (int)sizeof(topic_buf)-1) ? event->topic_len : (int)sizeof(topic_buf)-1;
                 memcpy(topic_buf, event->topic, tlen);
                 topic_buf[tlen] = '\0';
 
-                // check if topic ends with "/config"
                 const char *suffix = "/config";
                 size_t slen = strlen(suffix);
-                if (tlen >= (int)slen && strcmp(topic_buf + tlen - slen, suffix) == 0) {
-                    // parse JSON payload
+
+                if (tlen >= (int)slen && strcmp(topic_buf + tlen - slen, suffix) == 0) 
+                {
                     char payload_buf[512];
                     int plen = (event->data_len < (int)sizeof(payload_buf)-1) ? event->data_len : (int)sizeof(payload_buf)-1;
                     memcpy(payload_buf, event->data, plen);
                     payload_buf[plen] = '\0';
 
                     cJSON *root = cJSON_Parse(payload_buf);
-                    if (root) {
+
+                    if (root) 
+                    {
                         cJSON *inputs = cJSON_GetObjectItemCaseSensitive(root, "inputs");
                         cJSON *outputs = cJSON_GetObjectItemCaseSensitive(root, "outputs");
 

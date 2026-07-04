@@ -48,7 +48,7 @@ void http_send_gpio(protocol_t *proto, int gpio, int state, const char *message_
     if (err == ESP_OK)
     {
         int status = esp_http_client_get_status_code(client);
-        ESP_LOGI(TAG, "HTTP OK (%d)", status);
+        //ESP_LOGI(TAG, "HTTP OK (%d)", status);
     }
     else
     {
